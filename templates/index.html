@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Enhancer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f5f5f5;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        span {
+            background: linear-gradient(90deg, #00f0ff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-box {
+            width: 300px;
+            height: 150px;
+            border: 2px dashed gray;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .select-button,
+        .download-button {
+            background: linear-gradient(90deg, #00f0ff, #ff00ff);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .preview-section {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .image-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .image-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .image-box img {
+            width: 70%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        #error {
+            color: red;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .spinner {
+            border-top: 3px solid #00f0ff;
+            border-right: 3px solid #ff00ff;
+            border-bottom: 3px solid #00f0ff;
+            border-left: 3px solid #ff00ff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Medical Image <span>Enhancer</span></h1>
+        <p>Instantly improve image quality and resolution in one click.</p>
+
+        <div class="upload-section">
+            <label for="upload" class="upload-box" id="drop-area">
+                <input type="file" id="upload" accept="image/*" hidden>
+                <div class="upload-text">Click or drag to upload photos</div>
+            </label>
+            <button class="select-button" onclick="document.getElementById('upload').click()">Select photos</button>
+        </div>
+
+        <div class="preview-section" id="preview-section">
+            <div class="image-container">
+                <div class="image-box">
+                    <h3>Original</h3>
+                    <img id="original" src="" alt="Original Image">
+                    <p id="original-size" style="font-size: 14px; color: gray;"></p>
+
+                </div>
+                <div class="image-box">
+                    <h3>Enhanced</h3>
+                    <img id="enhanced" src="" alt="Enhanced Image">
+                    <p id="enhanced-size" style="font-size: 14px; color: gray;"></p>
+                    <div class="spinner" id="spinner"></div>
+                </div>
+            </div>
+            <button class="download-button" id="download-button" style="display: none;">Download Enhanced</button>
+        </div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        const upload = document.getElementById("upload");
+        const dropArea = document.getElementById("drop-area");
+        const previewSection = document.getElementById("preview-section");
+        const originalImage = document.getElementById("original");
+        const enhancedImage = document.getElementById("enhanced");
+        const downloadButton = document.getElementById("download-button");
+        const error = document.getElementById("error");
+        const spinner = document.getElementById("spinner");
+        const originalSizeText = document.getElementById("original-size");
+        const enhancedSizeText = document.getElementById("enhanced-size");
+
+
+        // Drag & Drop visuals
+        dropArea.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = "#00f0ff";
+        });
+
+        dropArea.addEventListener("dragleave", () => {
+            dropArea.style.borderColor = "gray";
+        });
+
+        dropArea.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = "gray";
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        upload.addEventListener("change", (e) => handleFile(e.target.files[0]));
+
+        downloadButton.addEventListener("click", () => {
+            const link = document.createElement("a");
+            link.href = enhancedImage.src;
+            link.download = "enhanced_image.png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        async function handleFile(file) {
+            if (!file) return;
+
+            // Reset state
+            error.style.display = "none";
+            downloadButton.style.display = "none";
+            enhancedImage.style.display = "none";
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                spinner.style.display = "block";
+                originalSizeText.textContent = '';
+                enhancedSizeText.textContent = '';
+                originalImage.src = e.target.result;
+                previewSection.style.display = "block";
+            };
+            reader.readAsDataURL(file);
+
+            try {
+                const formData = new FormData();
+                formData.append("image", file);
+                const response = await fetch('/enhance', {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+
+                spinner.style.display = "none";
+
+                if (data.success) {
+                    enhancedImage.src = "data:image/png;base64," + data.enhanced_image;
+                    enhancedImage.style.display = "block";
+                    downloadButton.style.display = "inline-block";
+
+                    originalSizeText.textContent = "Size: " + data.original_size;
+                    enhancedSizeText.textContent = "Size: " + data.enhanced_size;
+                } else {
+                    error.style.display = "block";
+                    error.textContent = data.error || "Something went wrong.";
+                }
+            } catch (err) {
+                spinner.style.display = "none";
+                error.style.display = "block";
+                error.textContent = "Failed to enhance image.";
+            }
+        }
+    </script>
+</body>
+
+</html>
