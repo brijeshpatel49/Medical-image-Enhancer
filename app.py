@@ -82,10 +82,8 @@ def enhance():
         return jsonify({'error': str(e), 'success': False}), 500
 
 
-app = Flask(__name__)
-    
-@app.route("/enhance")
+
+@app.route("/")
 def home():
     return render_template("index.html")
-
 
