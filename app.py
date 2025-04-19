@@ -81,7 +81,11 @@ def enhance():
         traceback.print_exc()  # <-- PRINT THE FULL ERROR STACK
         return jsonify({'error': str(e), 'success': False}), 500
 
-@app.route('/')
+
+app = Flask(__name__)
+    
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
+
 
